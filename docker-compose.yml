@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  masar-chat:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: masar-chat
+    ports:
+      - "8080:80"
+    volumes:
+      # Mount your local config.json to override the default
+      - ./config.json:/app/config.json:ro
+    environment:
+      - ELEMENT_WEB_PORT=80
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80/config.json"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+
