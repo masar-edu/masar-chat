@@ -13,11 +13,8 @@ import AutoHideScrollbar from "./AutoHideScrollbar";
 import { getHomePageUrl } from "../../utils/pages";
 import { _t, _tDom } from "../../languageHandler";
 import SdkConfig from "../../SdkConfig";
-import dis from "../../dispatcher/dispatcher";
-import { Action } from "../../dispatcher/actions";
 import BaseAvatar from "../views/avatars/BaseAvatar";
 import { OwnProfileStore } from "../../stores/OwnProfileStore";
-import AccessibleButton, { type ButtonEvent } from "../views/elements/AccessibleButton";
 import { UPDATE_EVENT } from "../../stores/AsyncStore";
 import { useEventEmitter } from "../../hooks/useEventEmitter";
 import MatrixClientContext, { useMatrixClientContext } from "../../contexts/MatrixClientContext";
@@ -25,20 +22,23 @@ import MiniAvatarUploader, { AVATAR_SIZE } from "../views/elements/MiniAvatarUpl
 import PosthogTrackers from "../../PosthogTrackers";
 import EmbeddedPage from "./EmbeddedPage";
 
-const onClickSendDm = (ev: ButtonEvent): void => {
-    PosthogTrackers.trackInteraction("WebHomeCreateChatButton", ev);
-    dis.dispatch({ action: Action.CreateChat });
-};
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const masarLogo = require("../../../res/img/masar-logo.svg").default;
 
-const onClickExplore = (ev: ButtonEvent): void => {
-    PosthogTrackers.trackInteraction("WebHomeExploreRoomsButton", ev);
-    dis.fire(Action.ViewRoomDirectory);
-};
+// const onClickSendDm = (ev: ButtonEvent): void => {
+//     PosthogTrackers.trackInteraction("WebHomeCreateChatButton", ev);
+//     dis.dispatch({ action: Action.CreateChat });
+// };
 
-const onClickNewRoom = (ev: ButtonEvent): void => {
-    PosthogTrackers.trackInteraction("WebHomeCreateRoomButton", ev);
-    dis.dispatch({ action: Action.CreateRoom });
-};
+// const onClickExplore = (ev: ButtonEvent): void => {
+//     PosthogTrackers.trackInteraction("WebHomeExploreRoomsButton", ev);
+//     dis.fire(Action.ViewRoomDirectory);
+// };
+
+// const onClickNewRoom = (ev: ButtonEvent): void => {
+//     PosthogTrackers.trackInteraction("WebHomeCreateRoomButton", ev);
+//     dis.dispatch({ action: Action.CreateRoom });
+// };
 
 interface IProps {
     justRegistered?: boolean;
@@ -116,7 +116,7 @@ const HomePage: React.FC<IProps> = ({ justRegistered = false }) => {
             <div className="mx_HomePage_default_wrapper">
                 {introSection}
                 <div className="mx_HomePage_default_buttons">
-                    <AccessibleButton onClick={onClickSendDm} className="mx_HomePage_button_sendDm">
+                    {/* <AccessibleButton onClick={onClickSendDm} className="mx_HomePage_button_sendDm">
                         {_tDom("onboarding|send_dm")}
                     </AccessibleButton>
                     <AccessibleButton onClick={onClickExplore} className="mx_HomePage_button_explore">
@@ -124,7 +124,8 @@ const HomePage: React.FC<IProps> = ({ justRegistered = false }) => {
                     </AccessibleButton>
                     <AccessibleButton onClick={onClickNewRoom} className="mx_HomePage_button_createGroup">
                         {_tDom("onboarding|create_room")}
-                    </AccessibleButton>
+                    </AccessibleButton> */}
+                    <img src={masarLogo} style={{ minWidth: "262px !important", minHeight: "166px !important" }} alt="Masar" width="262" height="166" />
                 </div>
             </div>
         </AutoHideScrollbar>
