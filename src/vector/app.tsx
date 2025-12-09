@@ -40,6 +40,7 @@ function onTokenLoginCompleted(): void {
     // url as query params in the url;
     // if we did an oidc authorization code flow login, we're left with the auth code and state
     // as query params in the url;
+    // if we did a direct access_token login, we're left with the access_token and related params
     // a little nasty but let's redirect to clear them.
     const url = new URL(window.location.href);
 
@@ -47,6 +48,12 @@ function onTokenLoginCompleted(): void {
     url.searchParams.delete("loginToken");
     url.searchParams.delete("state");
     url.searchParams.delete("code");
+    url.searchParams.delete("access_token");
+    url.searchParams.delete("identity_access_token");
+    url.searchParams.delete("userId");
+    url.searchParams.delete("deviceId");
+    url.searchParams.delete("hs_url");
+    url.searchParams.delete("is_url");
 
     logger.log(`Redirecting to ${url.href} to drop delegated authentication params from queryparams`);
     window.history.replaceState(null, "", url.href);

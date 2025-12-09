@@ -16,6 +16,7 @@ import {
     SSOAction,
     type OidcTokenRefresher,
     decodeBase64,
+    MatrixError,
 } from "matrix-js-sdk/src/matrix";
 import { type AESEncryptedSecretStoragePayload } from "matrix-js-sdk/src/types";
 import { type QueryDict } from "matrix-js-sdk/src/utils";
@@ -261,7 +262,91 @@ export async function getStoredSessionOwner(): Promise<[string, boolean] | [null
 }
 
 /**
+ * Attempt to login using a direct access_token from URL parameters
+ * @param queryParams string->string map of the query-parameters extracted from the real query-string of the starting URI.
+ * @returns Promise that resolves to true when login succeeded, else false
+ */
+async function attemptAccessTokenLogin(queryParams: QueryDict): Promise<boolean> {
+    const accessToken = queryParams.access_token as string | undefined;
+    const identityAccessToken = queryParams.identity_access_token as string | undefined;
+
+    if (!accessToken) {
+        return false;
+    }
+
+    logger.log("We have access_token in params - attempting direct access token login");
+
+    // Get homeserver and identity server URLs from params or config
+    const hsUrl = (queryParams.hs_url as string | undefined) ||
+                  localStorage.getItem(SSO_HOMESERVER_URL_KEY) ||
+                  SdkConfig.get()["validated_server_config"]?.hsUrl;
+    const isUrl = (queryParams.is_url as string | undefined) ||
+                  localStorage.getItem(SSO_ID_SERVER_URL_KEY) ||
+                  SdkConfig.get()["validated_server_config"]?.isUrl;
+
+    if (!hsUrl) {
+        logger.warn("Cannot log in with access_token: can't determine HS URL to use");
+        onFailedDelegatedAuthLogin(_t("auth|sso_failed_missing_storage"));
+        return false;
+    }
+
+    try {
+        // Get userId and deviceId from params or fetch from server
+        let userId = queryParams.userId as string | undefined;
+        let deviceId = queryParams.deviceId as string | undefined;
+
+        // If userId is not provided, fetch it from the server using whoami
+        if (!userId) {
+            logger.log("userId not provided, fetching from server using access_token");
+            const whoamiResponse = await getUserIdFromAccessToken(accessToken, hsUrl, isUrl);
+            userId = whoamiResponse.user_id;
+            deviceId = deviceId || whoamiResponse.device_id;
+        }
+
+        if (!userId) {
+            throw new Error("Failed to determine userId");
+        }
+
+        // Store identity server access token if provided
+        if (identityAccessToken) {
+            logger.log("Storing identity server access token from URL params");
+            window.localStorage.setItem("mx_is_access_token", identityAccessToken);
+        }
+
+        const credentials: IMatrixClientCreds = {
+            accessToken,
+            homeserverUrl: hsUrl,
+            identityServerUrl: isUrl,
+            userId,
+            deviceId: deviceId || undefined,
+            guest: false,
+        };
+
+        logger.log(`Logged in with access_token for user ${userId}`);
+        await onSuccessfulDelegatedAuthLogin(credentials);
+        return true;
+    } catch (error) {
+        logger.error("Failed to log in with access_token:", error);
+        // Check if error is a MatrixError, otherwise create a generic error message
+        if (error instanceof MatrixError) {
+            onFailedDelegatedAuthLogin(
+                messageForLoginError(error, {
+                    hsUrl,
+                    hsName: hsUrl,
+                }),
+            );
+        } else {
+            onFailedDelegatedAuthLogin(
+                error instanceof Error ? error.message : "Login failed",
+            );
+        }
+        return false;
+    }
+}
+
+/**
  * If query string includes OIDC authorization code flow parameters attempt to login using oidc flow
+ * Else, if query string includes access_token, attempt direct access token login
  * Else, we may be returning from SSO - attempt token login
  *
  * @param {Object} queryParams    string->string map of the
@@ -282,6 +367,11 @@ export async function attemptDelegatedAuthLogin(
     if (queryParams.code && queryParams.state) {
         console.log("We have OIDC params - attempting OIDC login");
         return attemptOidcNativeLogin(queryParams);
+    }
+
+    // Check for direct access_token login first
+    if (queryParams.access_token) {
+        return attemptAccessTokenLogin(queryParams);
     }
 
     return attemptTokenLogin(queryParams, defaultDeviceDisplayName, fragmentAfterLogin);

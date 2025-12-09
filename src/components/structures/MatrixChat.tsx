@@ -339,11 +339,12 @@ export default class MatrixChat extends React.PureComponent<IProps, IState> {
             this.getFragmentAfterLogin(),
         );
 
-        // remove the loginToken or auth code from the URL regardless
+        // remove the loginToken, auth code, or access_token from the URL regardless
         if (
             this.props.realQueryParams?.loginToken ||
             this.props.realQueryParams?.code ||
-            this.props.realQueryParams?.state
+            this.props.realQueryParams?.state ||
+            this.props.realQueryParams?.access_token
         ) {
             this.props.onTokenLoginCompleted();
         }
